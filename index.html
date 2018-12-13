@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Tetris</title>
+    <style>
+      .canvas {
+        position: relative;
+        width: 200px;
+        height: 400px;
+        margin: 0 auto;
+      }
+
+      .pixel {
+        display: block;
+        width: 10px;
+        height: 10px;
+        border: 1px solid #eee;
+        position: absolute;
+      }
+
+      .pixel.filled {
+        background: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tetris</h1>
+
+    <div class="canvas"></div>
+    <script src="./tetris.js"></script>
+  </body>
+</html>
