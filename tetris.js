@@ -24,6 +24,7 @@ let pixelSize = 10;
 let timer = null;
 let skip = false;
 let pixelDOMMap = [];
+let possibleShapes = [0, 4];
 
 if (module.hot) {
   module.hot.dispose(function() {
@@ -52,7 +53,7 @@ function next(state) {
 
   if (nextState.currentShape === null) {
     nextState.currentPosition[0] = 8;
-    nextState.currentShape = getRandomInt(0, 4);
+    nextState.currentShape = getRandomInt.apply(null, possibleShapes);
     nextState.currentShapeOrientation = getRandomInt(0, 3);
   } else {
     nextState.currentPosition[1] = state.currentPosition[1] + 1;
@@ -274,7 +275,7 @@ function tryStackShapes(nextState, prevState) {
     removeFilledLines(nextState);
 
     nextState.currentPosition = [8, 0];
-    nextState.currentShape = getRandomInt(0, 4);
+    nextState.currentShape = getRandomInt.apply(null, possibleShapes);
     nextState.currentShapeOrientation = getRandomInt(0, 3);
   }
 }
@@ -355,7 +356,11 @@ function removeFilledLines(state) {
     const split = k.split(',');
     const p0 = +split[0];
     const p1 = +split[1];
-    state.baseShape[p0][p1] = state.baseShape[p0][p1] + toShiftMap[k];
+    state.baseShape.forEach(s => {
+      if (s[0] === p0 && s[1] === p1) {
+        s[1] + toShiftMap[k];
+      }
+    });
   });
 
   state.baseShape.forEach(s => {
