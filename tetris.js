@@ -13,10 +13,10 @@ const initialState = {
   height: 40,
   speed: 300,
   score: 0,
-  currentPosition: [0, 0],
-  currentShape: null, // 0,1,2,3,4,
-  currentShapeOrientation: 0, // 0,1,2,3
-  baseShape: [] // [[0, 79], [1, 79], [2, 79], [3, 79]]
+  movingPosition: [0, 0],
+  movingShape: null, // 0,1,2,3,4,
+  movingShapeOrientation: 0, // 0,1,2,3
+  bottomBlocks: [] // [[0, 39], [1, 39], [2, 39], [3, 39]]
 };
 
 let state = JSON.parse(JSON.stringify(initialState));
@@ -44,14 +44,14 @@ function start() {
 
 function next(state) {
   const nextState = { ...state };
-  nextState.currentPosition = [...nextState.currentPosition];
+  nextState.movingPosition = [...nextState.movingPosition];
 
-  if (nextState.currentShape === null) {
-    nextState.currentPosition[0] = 8;
-    nextState.currentShape = getRandomInt.apply(null, possibleShapes);
-    nextState.currentShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
+  if (nextState.movingShape === null) {
+    nextState.movingPosition[0] = 8;
+    nextState.movingShape = getRandomInt.apply(null, possibleShapes);
+    nextState.movingShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
   } else {
-    nextState.currentPosition[1] = state.currentPosition[1] + 1;
+    nextState.movingPosition[1] = state.movingPosition[1] + 1;
     tryStackShapes(nextState, state);
   }
 
@@ -72,25 +72,25 @@ function render(state) {
 function layout({
   width,
   height,
-  baseShape,
-  currentPosition,
-  currentShape,
-  currentShapeOrientation
+  bottomBlocks,
+  movingPosition,
+  movingShape,
+  movingShapeOrientation
 }) {
-  const currentShapePixel = shiftPixel(
-    getShapePixel(currentShape, currentShapeOrientation),
-    currentPosition
+  const movingShapePixel = shiftPixel(
+    getShapePixel(movingShape, movingShapeOrientation),
+    movingPosition
   );
 
-  if (!currentShapePixel) {
+  if (!movingShapePixel) {
     return [];
   }
 
   return arr(height).map((_, row) => {
     return arr(width).map((_, column) => {
-      const isInBaseShape = !!baseShape.find(([x, y]) => x === column && y === row);
-      const isInCurrentShap = !!currentShapePixel.find(([x, y]) => x === column && y === row);
-      const isFilled = isInBaseShape || isInCurrentShap;
+      const isInbottomBlocks = !!bottomBlocks.find(([x, y]) => x === column && y === row);
+      const isInMovingShape = !!movingShapePixel.find(([x, y]) => x === column && y === row);
+      const isFilled = isInbottomBlocks || isInMovingShape;
 
       return isFilled;
     });
@@ -138,23 +138,23 @@ function paintConsole(pixelMap) {
   console.log(pixelMap.map(row => row.map(r => (r ? '■' : '□')).join(' ')).join('\n'));
 }
 
-function collapse({ currentPosition, currentShape, currentShapeOrientation, baseShape, height }) {
-  const currentShapePixel = shiftPixel(
-    getShapePixel(currentShape, currentShapeOrientation),
-    currentPosition
+function collapse({ movingPosition, movingShape, movingShapeOrientation, bottomBlocks, height }) {
+  const movingShapePixel = shiftPixel(
+    getShapePixel(movingShape, movingShapeOrientation),
+    movingPosition
   );
 
-  if (!currentShapePixel) {
+  if (!movingShapePixel) {
     return false;
   }
 
-  const isTouchBottom = Math.max.apply(null, currentShapePixel.map(p => p[1])) > height - 1;
+  const isTouchBottom = Math.max.apply(null, movingShapePixel.map(p => p[1])) > height - 1;
 
-  const collapseWithBaseShape = !!baseShape.find(bs => {
-    return !!currentShapePixel.find(cs => cs[0] === bs[0] && cs[1] === bs[1]);
+  const collapseWithbottomBlocks = !!bottomBlocks.find(bs => {
+    return !!movingShapePixel.find(cs => cs[0] === bs[0] && cs[1] === bs[1]);
   });
 
-  if (isTouchBottom || collapseWithBaseShape) {
+  if (isTouchBottom || collapseWithbottomBlocks) {
     return true;
   } else {
     return false;
@@ -169,32 +169,32 @@ function bindKeyboardEvent() {
 
 function handleKeyBoardInput(e) {
   const nextState = { ...state };
-  nextState.currentPosition = [...nextState.currentPosition];
+  nextState.movingPosition = [...nextState.movingPosition];
 
   if (e.keyCode === 38) {
     // up
-    nextState.currentShapeOrientation = nextState.currentShapeOrientation + 1;
-    if (nextState.currentShapeOrientation === 4) {
-      nextState.currentShapeOrientation = 0;
+    nextState.movingShapeOrientation = nextState.movingShapeOrientation + 1;
+    if (nextState.movingShapeOrientation === 4) {
+      nextState.movingShapeOrientation = 0;
     }
     if (invalidMove(nextState)) {
-      nextState.currentShapeOrientation = state.currentShapeOrientation;
+      nextState.movingShapeOrientation = state.movingShapeOrientation;
     }
   } else if (e.keyCode === 37) {
     // left
-    nextState.currentPosition[0] = nextState.currentPosition[0] - 1;
+    nextState.movingPosition[0] = nextState.movingPosition[0] - 1;
     if (invalidMove(nextState)) {
-      nextState.currentPosition[0] = state.currentPosition[0];
+      nextState.movingPosition[0] = state.movingPosition[0];
     }
   } else if (e.keyCode === 39) {
     // right
-    nextState.currentPosition[0] = nextState.currentPosition[0] + 1;
+    nextState.movingPosition[0] = nextState.movingPosition[0] + 1;
     if (invalidMove(nextState)) {
-      nextState.currentPosition[0] = state.currentPosition[0];
+      nextState.movingPosition[0] = state.movingPosition[0];
     }
   } else if (e.keyCode === 40) {
     // down
-    nextState.currentPosition[1] = nextState.currentPosition[1] + 1;
+    nextState.movingPosition[1] = nextState.movingPosition[1] + 1;
     tryStackShapes(nextState, state);
   }
 
@@ -204,38 +204,38 @@ function handleKeyBoardInput(e) {
 }
 
 function invalidMove(state) {
-  const overLeft = state.currentPosition[0] < 0;
+  const overLeft = state.movingPosition[0] < 0;
   const overRight =
-    state.currentPosition[0] + getWidthByShape(state.currentShape, state.currentShapeOrientation) >
+    state.movingPosition[0] + getWidthByShape(state.movingShape, state.movingShapeOrientation) >
     state.width;
   return collapse(state) || overLeft || overRight;
 }
 
 function tryStackShapes(nextState, prevState) {
   if (collapse(nextState)) {
-    nextState.baseShape = [
-      ...nextState.baseShape,
+    nextState.bottomBlocks = [
+      ...nextState.bottomBlocks,
       ...shiftPixel(
-        getShapePixel(prevState.currentShape, prevState.currentShapeOrientation),
-        prevState.currentPosition
+        getShapePixel(prevState.movingShape, prevState.movingShapeOrientation),
+        prevState.movingPosition
       )
     ];
 
     removeFilledLines(nextState);
 
-    nextState.currentPosition = [8, 0];
-    nextState.currentShape = getRandomInt.apply(null, possibleShapes);
-    nextState.currentShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
+    nextState.movingPosition = [8, 0];
+    nextState.movingShape = getRandomInt.apply(null, possibleShapes);
+    nextState.movingShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
   }
 }
 
-function getFilledLines(width, baseShape) {
-  const mostBottom = Math.max.apply(null, baseShape.map(p => p[1]));
-  const mostTop = Math.min.apply(null, baseShape.map(p => p[1]));
+function getFilledLines(width, bottomBlocks) {
+  const mostBottom = Math.max.apply(null, bottomBlocks.map(p => p[1]));
+  const mostTop = Math.min.apply(null, bottomBlocks.map(p => p[1]));
   const filledLines = [];
 
   for (let i = mostTop; i <= mostBottom; i++) {
-    const pointsOfCurrentLine = baseShape.filter(s => s[1] === i).map(s => s[0]);
+    const pointsOfCurrentLine = bottomBlocks.filter(s => s[1] === i).map(s => s[0]);
     const uniquePointsOfCurrentLine = uniqeArr(pointsOfCurrentLine);
     if (uniquePointsOfCurrentLine.length === width) {
       filledLines.push(i);
@@ -246,13 +246,13 @@ function getFilledLines(width, baseShape) {
 }
 
 function removeFilledLines(state) {
-  const filledLines = getFilledLines(state.width, state.baseShape);
+  const filledLines = getFilledLines(state.width, state.bottomBlocks);
   const toShiftMap = {};
   filledLines.forEach(lineIndex => {
-    state.baseShape = state.baseShape.filter(s => s[1] !== lineIndex);
+    state.bottomBlocks = state.bottomBlocks.filter(s => s[1] !== lineIndex);
   });
   filledLines.forEach(lineIndex => {
-    state.baseShape.forEach(s => {
+    state.bottomBlocks.forEach(s => {
       if (s[1] < lineIndex) {
         toShiftMap[`${s[0]},${s[1]}`] = toShiftMap[`${s[0]},${s[1]}`] || 0;
         toShiftMap[`${s[0]},${s[1]}`]++;
@@ -264,14 +264,14 @@ function removeFilledLines(state) {
     const split = k.split(',');
     const p0 = +split[0];
     const p1 = +split[1];
-    state.baseShape.forEach(s => {
+    state.bottomBlocks.forEach(s => {
       if (s[0] === p0 && s[1] === p1) {
         s[1] + toShiftMap[k];
       }
     });
   });
 
-  state.baseShape.forEach(s => {
+  state.bottomBlocks.forEach(s => {
     if (toShiftMap[`${s[0]},${s[1]}`]) {
       s[1] = s[1] + toShiftMap[`${s[0]},${s[1]}`];
     }
