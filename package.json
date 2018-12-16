@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "start": "parcel index.html"
+    "start": "http-server -c-1 ."
   },
   "dependencies": {
-    "parcel-bundler": "^1.10.3"
+    "http-server": "^0.11.1"
   }
 }

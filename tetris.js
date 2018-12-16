@@ -11,6 +11,7 @@
 const initialState = {
   width: 20, // px
   height: 40,
+  speed: 300,
   score: 0,
   currentPosition: [0, 0],
   currentShape: null, // 0,1,2,3,4,
@@ -19,30 +20,24 @@ const initialState = {
 };
 
 let state = JSON.parse(JSON.stringify(initialState));
-let speed = 300;
 let pixelSize = 10;
-let timer = null;
-let skip = false;
 let pixelDOMMap = [];
 let possibleShapes = [0, 4];
-
-if (module.hot) {
-  module.hot.dispose(function() {
-    clearInterval(timer);
-  });
-}
+let possibleShapesOrientation = [0, 3];
+let renderTarget = 'HTML'; // 'console'
+let skip = false;
 
 start();
 
 function start() {
-  timer = setInterval(() => {
+  setInterval(() => {
     if (skip) {
       skip = false;
       return;
     }
     state = next(state);
     render(state);
-  }, speed);
+  }, state.speed);
 
   bindKeyboardEvent();
 }
@@ -54,7 +49,7 @@ function next(state) {
   if (nextState.currentShape === null) {
     nextState.currentPosition[0] = 8;
     nextState.currentShape = getRandomInt.apply(null, possibleShapes);
-    nextState.currentShapeOrientation = getRandomInt(0, 3);
+    nextState.currentShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
   } else {
     nextState.currentPosition[1] = state.currentPosition[1] + 1;
     tryStackShapes(nextState, state);
@@ -66,8 +61,12 @@ function next(state) {
 function render(state) {
   const pixelMap = layout(state);
   document.querySelector('.score').textContent = state.score;
-  paintHTML(pixelMap);
-  // paintConsole(pixelMap);
+
+  if (renderTarget === 'HTML') {
+    paintHTML(pixelMap);
+  } else if (renderTarget === 'console') {
+    paintConsole(pixelMap);
+  }
 }
 
 function layout({
@@ -105,11 +104,11 @@ function paintHTML(pixelMap) {
         return row
           .map((column, x) => {
             return `<span
-            class="pixel ${column ? 'filled' : ''}"
-            data-x="${x}"
-            data-y="${y}"
-            style="transform: translate(${pixelSize * x}px, ${pixelSize * y}px);"
-          ></span>`;
+                class="pixel ${column ? 'filled' : ''}"
+                data-x="${x}"
+                data-y="${y}"
+                style="transform: translate(${pixelSize * x}px, ${pixelSize * y}px);"
+              ></span>`;
           })
           .join('');
       })
@@ -137,56 +136,6 @@ function paintHTML(pixelMap) {
 function paintConsole(pixelMap) {
   console.clear();
   console.log(pixelMap.map(row => row.map(r => (r ? '■' : '□')).join(' ')).join('\n'));
-}
-
-function getShapePixel(shape, shapeOrientation) {
-  if (shape === 0) {
-    return [[0, 0], [1, 1], [1, 0], [0, 1]];
-  }
-  if (shape === 1) {
-    if (shapeOrientation === 0 || shapeOrientation === 2) {
-      return [[0, 0], [1, 0], [2, 0], [3, 0]];
-    } else {
-      return [[0, 0], [0, 1], [0, 2], [0, 3]];
-    }
-  }
-  if (shape === 2) {
-    if (shapeOrientation === 0 || shapeOrientation === 2) {
-      return [[0, 0], [1, 0], [1, 1], [2, 1]];
-    } else {
-      return [[1, 0], [0, 1], [1, 1], [0, 2]];
-    }
-  }
-  if (shape === 3) {
-    if (shapeOrientation === 0) {
-      return [[0, 0], [1, 0], [2, 0], [1, 1]];
-    } else if (shapeOrientation === 1) {
-      return [[0, 1], [1, 0], [1, 1], [1, 2]];
-    } else if (shapeOrientation === 2) {
-      return [[1, 0], [0, 1], [1, 1], [2, 1]];
-    } else {
-      return [[2, 1], [1, 0], [1, 1], [1, 2]];
-    }
-  }
-  if (shape === 4) {
-    if (shapeOrientation === 0 || shapeOrientation === 2) {
-      return [[1, 0], [2, 0], [0, 1], [1, 1]];
-    } else {
-      return [[0, 0], [0, 1], [1, 1], [1, 2]];
-    }
-  }
-}
-
-function shiftPixel(pixels, shiftPixel) {
-  return pixels && pixels.map(p => [p[0] + shiftPixel[0], p[1] + shiftPixel[1]]);
-}
-
-function arr(len) {
-  return [...new Array(len)];
-}
-
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function collapse({ currentPosition, currentShape, currentShapeOrientation, baseShape, height }) {
@@ -276,37 +225,7 @@ function tryStackShapes(nextState, prevState) {
 
     nextState.currentPosition = [8, 0];
     nextState.currentShape = getRandomInt.apply(null, possibleShapes);
-    nextState.currentShapeOrientation = getRandomInt(0, 3);
-  }
-}
-
-function getWidthByShape(shape, orientation) {
-  if (shape === 0) {
-    return 2;
-  } else if (shape === 1) {
-    if (orientation === 1 || orientation === 3) {
-      return 1;
-    } else {
-      return 4;
-    }
-  } else if (shape === 2) {
-    if (orientation === 0 || orientation === 2) {
-      return 3;
-    } else {
-      return 2;
-    }
-  } else if (shape === 3) {
-    if (orientation === 0 || orientation === 2) {
-      return 3;
-    } else {
-      return 2;
-    }
-  } else {
-    if (orientation === 0 || orientation === 2) {
-      return 3;
-    } else {
-      return 2;
-    }
+    nextState.currentShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
   }
 }
 
@@ -324,17 +243,6 @@ function getFilledLines(width, baseShape) {
   }
 
   return filledLines;
-}
-
-function uniqeArr(arr) {
-  const _arr = [];
-  arr.forEach(i => {
-    if (_arr.indexOf(i) === -1) {
-      _arr.push(i);
-    }
-  });
-
-  return _arr;
 }
 
 function removeFilledLines(state) {
@@ -370,4 +278,99 @@ function removeFilledLines(state) {
   });
 
   state.score = state.score + filledLines.length;
+}
+
+// shape data
+
+function getShapePixel(shape, shapeOrientation) {
+  if (shape === 0) {
+    return [[0, 0], [1, 1], [1, 0], [0, 1]];
+  }
+  if (shape === 1) {
+    if (shapeOrientation === 0 || shapeOrientation === 2) {
+      return [[0, 0], [1, 0], [2, 0], [3, 0]];
+    } else {
+      return [[0, 0], [0, 1], [0, 2], [0, 3]];
+    }
+  }
+  if (shape === 2) {
+    if (shapeOrientation === 0 || shapeOrientation === 2) {
+      return [[0, 0], [1, 0], [1, 1], [2, 1]];
+    } else {
+      return [[1, 0], [0, 1], [1, 1], [0, 2]];
+    }
+  }
+  if (shape === 3) {
+    if (shapeOrientation === 0) {
+      return [[0, 0], [1, 0], [2, 0], [1, 1]];
+    } else if (shapeOrientation === 1) {
+      return [[0, 1], [1, 0], [1, 1], [1, 2]];
+    } else if (shapeOrientation === 2) {
+      return [[1, 0], [0, 1], [1, 1], [2, 1]];
+    } else {
+      return [[2, 1], [1, 0], [1, 1], [1, 2]];
+    }
+  }
+  if (shape === 4) {
+    if (shapeOrientation === 0 || shapeOrientation === 2) {
+      return [[1, 0], [2, 0], [0, 1], [1, 1]];
+    } else {
+      return [[0, 0], [0, 1], [1, 1], [1, 2]];
+    }
+  }
+}
+
+function getWidthByShape(shape, orientation) {
+  if (shape === 0) {
+    return 2;
+  } else if (shape === 1) {
+    if (orientation === 1 || orientation === 3) {
+      return 1;
+    } else {
+      return 4;
+    }
+  } else if (shape === 2) {
+    if (orientation === 0 || orientation === 2) {
+      return 3;
+    } else {
+      return 2;
+    }
+  } else if (shape === 3) {
+    if (orientation === 0 || orientation === 2) {
+      return 3;
+    } else {
+      return 2;
+    }
+  } else {
+    if (orientation === 0 || orientation === 2) {
+      return 3;
+    } else {
+      return 2;
+    }
+  }
+}
+
+// utils
+
+function shiftPixel(pixels, shiftPixel) {
+  return pixels && pixels.map(p => [p[0] + shiftPixel[0], p[1] + shiftPixel[1]]);
+}
+
+function arr(len) {
+  return [...new Array(len)];
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function uniqeArr(arr) {
+  const _arr = [];
+  arr.forEach(i => {
+    if (_arr.indexOf(i) === -1) {
+      _arr.push(i);
+    }
+  });
+
+  return _arr;
 }
