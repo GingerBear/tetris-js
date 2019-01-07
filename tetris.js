@@ -31,10 +31,6 @@ start();
 
 function start() {
   setInterval(() => {
-    if (skip) {
-      skip = false;
-      return;
-    }
     state = next(state);
     render(state);
   }, state.speed);
@@ -52,7 +48,7 @@ function next(state) {
     nextState.movingShapeOrientation = getRandomInt.apply(null, possibleShapesOrientation);
   } else {
     nextState.movingPosition[1] = state.movingPosition[1] + 1;
-    tryStackShapes(nextState, state);
+    checkCollision(nextState, state);
   }
 
   return nextState;
@@ -98,7 +94,7 @@ function layout({
 }
 
 function paintHTML(pixelMap) {
-  if (!document.querySelector('.canvas').innerHTML) {
+  if (!pixelDOMMap.length) {
     document.querySelector('.canvas').innerHTML = pixelMap
       .map((row, y) => {
         return row
@@ -138,7 +134,7 @@ function paintConsole(pixelMap) {
   console.log(pixelMap.map(row => row.map(r => (r ? '■' : '□')).join(' ')).join('\n'));
 }
 
-function collapse({ movingPosition, movingShape, movingShapeOrientation, bottomBlocks, height }) {
+function collide({ movingPosition, movingShape, movingShapeOrientation, bottomBlocks, height }) {
   const movingShapePixel = shiftPixel(
     getShapePixel(movingShape, movingShapeOrientation),
     movingPosition
@@ -150,11 +146,11 @@ function collapse({ movingPosition, movingShape, movingShapeOrientation, bottomB
 
   const isTouchBottom = Math.max.apply(null, movingShapePixel.map(p => p[1])) > height - 1;
 
-  const collapseWithbottomBlocks = !!bottomBlocks.find(bs => {
+  const collideWithbottomBlocks = !!bottomBlocks.find(bs => {
     return !!movingShapePixel.find(cs => cs[0] === bs[0] && cs[1] === bs[1]);
   });
 
-  if (isTouchBottom || collapseWithbottomBlocks) {
+  if (isTouchBottom || collideWithbottomBlocks) {
     return true;
   } else {
     return false;
@@ -195,10 +191,9 @@ function handleKeyBoardInput(e) {
   } else if (e.keyCode === 40) {
     // down
     nextState.movingPosition[1] = nextState.movingPosition[1] + 1;
-    tryStackShapes(nextState, state);
+    checkCollision(nextState, state);
   }
 
-  skip = true;
   state = nextState;
   render(nextState);
 }
@@ -208,11 +203,11 @@ function invalidMove(state) {
   const overRight =
     state.movingPosition[0] + getWidthByShape(state.movingShape, state.movingShapeOrientation) >
     state.width;
-  return collapse(state) || overLeft || overRight;
+  return collide(state) || overLeft || overRight;
 }
 
-function tryStackShapes(nextState, prevState) {
-  if (collapse(nextState)) {
+function checkCollision(nextState, prevState) {
+  if (collide(nextState)) {
     nextState.bottomBlocks = [
       ...nextState.bottomBlocks,
       ...shiftPixel(
@@ -256,17 +251,6 @@ function removeFilledLines(state) {
       if (s[1] < lineIndex) {
         toShiftMap[`${s[0]},${s[1]}`] = toShiftMap[`${s[0]},${s[1]}`] || 0;
         toShiftMap[`${s[0]},${s[1]}`]++;
-      }
-    });
-  });
-
-  Object.keys(toShiftMap).forEach(k => {
-    const split = k.split(',');
-    const p0 = +split[0];
-    const p1 = +split[1];
-    state.bottomBlocks.forEach(s => {
-      if (s[0] === p0 && s[1] === p1) {
-        s[1] + toShiftMap[k];
       }
     });
   });
